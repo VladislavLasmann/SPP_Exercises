@@ -1,3 +1,9 @@
+/**
+ * Gruppe: 122
+ * Konstantin Müller (2327697) 
+ * Robin Ferrari 	 (2585277) 
+ * Vladislav Lasmann (2593078)
+ */
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,17 +56,17 @@ void mult_mat_fast( double* a_mat, double* b_mat, double* c_mat,
  */
 int verify_results( double* mat, uint64_t n ) {
     // for verification-check process the matrix-multiplication 
-    double* matrixA = (double*) malloc( sizeof(double) * n * n );
-    double* matrixB = (double*) malloc( sizeof(double) * n * n );
-    double* matrixResult = (double*) malloc( sizeof(double) * n * n );
+    double* matrixA = (double*) calloc(n*n, sizeof(double));
+    double* matrixB = (double*) calloc(n*n, sizeof(double));
+    double* matrixResult = (double*) calloc(n*n, sizeof(double));
     init_mat(matrixA, n, n);
     init_mat(matrixB, n, n);
     mult_mat_fast(matrixA, matrixB, matrixResult, n, n, n);
 
     // verification, checking the matrix-elements
-    for(int i = 0; i < n*n; ++i){
+    for(uint64_t i = 0; i < n*n; ++i){
         if( mat[i] != matrixResult[i] ){
-            printf("FALSE! mat[%d] = %f != matrixResult[%d] = %f\n", i, mat[ i ], i, matrixResult[i] );
+            //printf("FALSE! mat[%d] = %f != matrixResult[%d] = %f\n", i, mat[ i ], i, matrixResult[i] );
             free(matrixA);
             free(matrixB);
             free(matrixResult);
@@ -99,16 +105,19 @@ int main( int argc, char** argv ) {
     int myRowStartIndex = myrank * myBlockCount;
 
     /* Allocate memory for matrices & part-matrix*/
-    double* matrixA = (double*) malloc( sizeof(double) * n * n);
-    double* matrixB = (double*) malloc( sizeof(double) * n * n);
+    double* matrixA = (double*) calloc(n*n, sizeof(double));
+    double* matrixB = (double*) calloc(n*n, sizeof(double));
+    double* partMatrixC = (double*) calloc(myBlockCount, sizeof(double));
+    //double* matrixA = (double*) malloc( sizeof(double) * n * n);
+    //double* matrixB = (double*) malloc( sizeof(double) * n * n);
     double* matrixC = matrixB;
-    double* partMatrixC = (double*) malloc( sizeof(double) * myBlockCount );
+    //double* partMatrixC = (double*) malloc( sizeof(double) * myBlockCount );
 
 
-    // check if divisiblity of matrix by processors
+    // check if matrix is divisible by processors
     if( n%nprocs != 0 ){
         if( myrank == MASTER_RANK ){
-            printf("Size of quadratic matrix with length %d is not divisible by %d processors\n", n, nprocs);
+            printf("Size of quadratic matrix with length %d is not divisible by %d processors\n", (int) n, nprocs);
         }
         MPI_Finalize();
         return -1;
@@ -116,7 +125,7 @@ int main( int argc, char** argv ) {
 
     /* Initialize */
     if( myrank == MASTER_RANK ){
-        printf("initializing...\nnprocs:%d, myBlockCount:%d, myRowAmount:%d, myRowStartIndex:%d\n", nprocs, myBlockCount, myRowAmount, myRowStartIndex);
+        //printf("initializing...\nnprocs:%d, myBlockCount:%d, myRowAmount:%d, myRowStartIndex:%d\n", nprocs, myBlockCount, myRowAmount, myRowStartIndex);
         init_mat(matrixA, n, n);
         init_mat(matrixB, n, n);
     }
@@ -152,7 +161,7 @@ int main( int argc, char** argv ) {
             printf("matrixC[%d]=%f\n", i, matrixC[i]);
         }
         */
-        printf("==================================\nVerification...\n");
+        //printf("==================================\nVerification...\n");
         if( verify_results(matrixC, n) ){
             printf("Multiplication worked correctly\n");
         }

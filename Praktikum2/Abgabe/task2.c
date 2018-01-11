@@ -1,3 +1,9 @@
+/**
+ * Gruppe: 122
+ * Konstantin Müller (2327697) 
+ * Robin Ferrari 	 (2585277) 
+ * Vladislav Lasmann (2593078)
+ */
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,8 +71,28 @@ void add_toMat( double* result_mat, double* mat, uint64_t rows, uint64_t cols){
  * Returns 1 if multiplication is correct, and 0 otherwise.
  */
 int verify_results( double* mat, uint64_t q, int coords[2], int dim ) {
+    double I = ((double) coords[0]) * ((double) q);
+    double n = (double) dim;
 
-    return 0;
+    for(uint64_t i = 0; i < q; i++){
+        // set J to its default value
+        double J = ((double) coords[1]) * ((double) q);
+
+        for(uint64_t j = 0; j < q; j++){
+            double calculatedResultValue = (I*pow(n, 2) + J) * ((pow(n, 2) - n)/2) + (I*J*pow(n,2)) + (1.0/6.0) * ( 2 * pow(n,4) - 3*pow(n, 3) + pow(n,2));
+            /*
+            printf("process: (%d, %d), n=%f, with I=%f, J=%f, calculatedResultValue=%f, matrixValue[%d]: %f, isSame: %d\n",
+            coords[0], coords[1], n, I, J, calculatedResultValue, i*q+j, mat[i*q+j], mat[i*q + j] == calculatedResultValue); 
+            */
+            if( mat[i*q + j] != calculatedResultValue ){
+                return 0;
+            }
+            ++J;
+        }
+        ++I;
+    }
+
+    return 1;
 }
 
 
@@ -100,8 +126,8 @@ int main( int argc, char** argv ) {
     int DIMENSION_SIZE = 2;
     /* Block-matrix size*/
     int BLOCK_MATRIX_SIZE = q * q;
-    /* Total matrix length with q = n / √p */
-    int MATRIX_LENGTH = q * sqrtP;
+    /* Total matrix length with q = n / √p => n = q * √p */
+    int MATRIX_LENGTH = (int) q * sqrtP;
     //printf("matrixlength: %d\n", MATRIX_LENGTH);
 
     /* Create a cartesian communicator (subtask 2.1) */
@@ -124,9 +150,9 @@ int main( int argc, char** argv ) {
     int processCartCoords[DIMENSION_SIZE];
     MPI_Cart_coords(comm_cart, cart_rank, DIMENSION_SIZE, processCartCoords);
     // Allocate and initialize
-    a_mat = (double*) malloc( sizeof(double) * BLOCK_MATRIX_SIZE);
-    b_mat = (double*) malloc( sizeof(double) * BLOCK_MATRIX_SIZE);
-    c_mat = (double*) malloc( sizeof(double) * BLOCK_MATRIX_SIZE);
+    a_mat = (double*) calloc(BLOCK_MATRIX_SIZE, sizeof(double));
+    b_mat = (double*) calloc(BLOCK_MATRIX_SIZE, sizeof(double));
+    c_mat = (double*) calloc(BLOCK_MATRIX_SIZE, sizeof(double));
     // 
     init_mat(a_mat, q, processCartCoords, MATRIX_LENGTH);
     init_mat(b_mat, q, processCartCoords, MATRIX_LENGTH);
@@ -206,7 +232,7 @@ int main( int argc, char** argv ) {
         MPI_Sendrecv_replace(a_mat, BLOCK_MATRIX_SIZE, MPI_DOUBLE, rankDestinationShiftMatrixA, 10, rankSourceShiftMatrixA, 10, comm_cart, &statusInitShiftA);
         MPI_Sendrecv_replace(b_mat, BLOCK_MATRIX_SIZE, MPI_DOUBLE, rankDestinationShiftMatrixB, 20, rankSourceShiftMatrixB, 20, comm_cart, &statusInitShiftB);
 
-        double* tmpResultMatrix = malloc( sizeof(double) * BLOCK_MATRIX_SIZE);
+        double* tmpResultMatrix = (double*) calloc(BLOCK_MATRIX_SIZE, sizeof(double));;
         mult_mat_fast(a_mat, b_mat, tmpResultMatrix, q, q, q);
         add_toMat(c_mat, tmpResultMatrix, q, q);
         free(tmpResultMatrix);
@@ -215,16 +241,23 @@ int main( int argc, char** argv ) {
         MPI_Cart_shift(comm_cart, 0, -1, &rankSourceShiftMatrixB, &rankDestinationShiftMatrixB);
     }
     
-
+    /*
     //Testing result-matrix:
     MPI_Barrier(comm_cart);
     printf("matrixC block:\n");
     for(uint64_t i = 0; i < BLOCK_MATRIX_SIZE; i++){
         printf("processCoord:(%d, %d) matrix[%d]=%f\n", processCartCoords[0], processCartCoords[1], i, c_mat[i]);
-    }
+    } 
+    */
 
     /* Verify the results (subtask 2.7) */
+    MPI_Barrier(comm_cart);
+    int local_result = verify_results(c_mat, q, processCartCoords, MATRIX_LENGTH);
+    //printf("Verify result process: (%d, %d), result: %d\n", processCartCoords[0], processCartCoords[1], local_result);
     int global_result = 0;
+
+    MPI_Barrier(comm_cart);
+    MPI_Reduce(&local_result, &global_result, 1, MPI_INT, MPI_PROD, 0, MPI_COMM_WORLD);
     if( world_rank == 0 ) {
         printf( "Correct: %d\n", global_result );
     }

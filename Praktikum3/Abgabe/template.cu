@@ -503,4 +503,4 @@
      printf("%s\n", cudaGetErrorString(cudaGetLastError()));
      return 0;
  }
- 
+  

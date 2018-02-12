@@ -320,7 +320,6 @@ void cuda_gaussian(int width, int height, float *image, float *image_out)
     if( absY < (height - 2) && absX < (width - 2) ){
         image_out[offset + (absX + 1)] = cuda_applyFilter(&image[offset_t + absX], width, gaussian, 3);
     }
-
 }
 
 /**
@@ -435,15 +434,15 @@ int main(int argc, char *argv[])
     t[0] = get_clock_time();
     
     // Covert input image to grayscale
-    //grayscale(bitmap.width, bitmap.height, bitmap.data, image_out[0]); //serial version
+    grayscale(bitmap.width, bitmap.height, bitmap.data, image_out[0]); //serial version
     
     //Task4: (2 pt): Launch cuda_grayscale()
-    cuda_grayscale<<<grid, block>>>(bitmap.width, bitmap.height, d_bitmap, d_image_out[0]);
+    //cuda_grayscale<<<grid, block>>>(bitmap.width, bitmap.height, d_bitmap, d_image_out[0]);
 
     t[1] = get_clock_time();
 
     //(2 pt): transfer image from device to the main memory for saving onto the disk
-    cudaMemcpy( image_out[0], d_image_out[0], image_size * sizeof(float), cudaMemcpyDeviceToHost );
+    //cudaMemcpy( image_out[0], d_image_out[0], image_size * sizeof(float), cudaMemcpyDeviceToHost );
     
     sprintf(path, "images/grayscale.bmp");
     writeBMPGrayscale(bitmap.width, bitmap.height, image_out[0], path); //write output file
@@ -452,16 +451,16 @@ int main(int argc, char *argv[])
     // Apply a 3x3 Gaussian filter
     t[0] = get_clock_time();
     // Launch the CPU version
-    // gaussian(bitmap.width, bitmap.height, image_out[0], image_out[1]);
+    gaussian(bitmap.width, bitmap.height, image_out[0], image_out[1]);
     
     // Launch the GPU version
     // (2 pt): Launch cuda_gaussian();
-    cuda_gaussian<<<grid, block>>>(bitmap.width, bitmap.height, d_image_out[0], d_image_out[1]);
+    //cuda_gaussian<<<grid, block>>>(bitmap.width, bitmap.height, d_image_out[0], d_image_out[1]);
     
     
     t[1] = get_clock_time();
     //(2 pt): transfer image from device to the main memory for saving onto the disk
-    cudaMemcpy( image_out[1], d_image_out[1], image_size * sizeof(float), cudaMemcpyDeviceToHost);
+    //cudaMemcpy( image_out[1], d_image_out[1], image_size * sizeof(float), cudaMemcpyDeviceToHost);
 
     // Store the result image with the Gaussian filter applied
     sprintf(path, "images/gaussian.bmp");
@@ -472,15 +471,15 @@ int main(int argc, char *argv[])
     // Apply a Sobel filter
     t[0] = get_clock_time();
     // Launch the CPU version
-    //sobel(bitmap.width, bitmap.height, image_out[1], image_out[0]);
+    sobel(bitmap.width, bitmap.height, image_out[1], image_out[0]);
     
     // Launch the GPU version
     // (2 pt): Launch cuda_sobel();
-    cuda_sobel<<<grid, block>>>(bitmap.width, bitmap.height, d_image_out[1], d_image_out[0]);
+    //cuda_sobel<<<grid, block>>>(bitmap.width, bitmap.height, d_image_out[1], d_image_out[0]);
    
     t[1] = get_clock_time();
     //(2 pt): transfer image from device to the main memory for saving onto the disk
-    cudaMemcpy( image_out[0], d_image_out[0], image_size * sizeof(float), cudaMemcpyDeviceToHost);
+    //cudaMemcpy( image_out[0], d_image_out[0], image_size * sizeof(float), cudaMemcpyDeviceToHost);
     
     // Store the final result image with the Sobel filter applied
     sprintf(path, "images/sobel.bmp");
